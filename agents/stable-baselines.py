@@ -5,6 +5,7 @@ import argparse
 import sys
 import signal
 import sys
+import os
 
 from stable_baselines.common.policies import MlpPolicy, MlpLstmPolicy
 from stable_baselines.common.vec_env import DummyVecEnv, VecFrameStack
@@ -29,13 +30,18 @@ parser.add_argument("--save-path", type=str, default=None)
 parser.add_argument('--url', type=str, default="http://localhost:8080")
 parser.add_argument("--frame-stack", type=int, default=1)
 parser.add_argument('--save-multiple', action='store_true')
+parser.add_argument("--remove-on-end", action="store_true")
 parser.add_argument("--save-steps", type=int, default=1)
 parser.add_argument("--log-steps", type=int, default=1)
 
 args = parser.parse_args()
 
 def signal_handler(sig, frame):
-  save_model() #or not
+  if args.remove_on_end:
+    delete_model()
+  else:
+    save_model()
+
   sys.exit(0)
 
 signal.signal(signal.SIGINT, signal_handler)
@@ -47,17 +53,34 @@ signal.signal(signal.SIGINT, signal_handler)
 #  basically if load path == save path, then iters = number at end of load path
 #  (parseint from right of path, or split path on _, then select [-1])
 
-#TODO: use warnings module
-if args.save_path is None:
-  print("Warning: no save_path provided. Model will not be saved.");
-
-# multiprocess environment
+#create environment
 n_cpu = 1 #gotta be 1 (controlling single minecraft agent..)
 #env = SubprocVecEnv([lambda: gym.make('CartPole-v1') for i in range(n_cpu)])
 env = VecFrameStack(DummyVecEnv([lambda: RemoteEnv(args.url) for i in range(n_cpu)]), args.frame_stack)
 
-#model = PPO2(MlpLstmPolicy, env, verbose=0, nminibatches=1)#have to set minibatches to 1
-model = PPO2(MlpPolicy, env, verbose=0)
+#TODO: use warnings module
+if args.save_path is None:
+  print("Warning: no save_path provided. Model will not be saved.");
+
+if args.load_path is not None:
+  #load model
+  print("Loading '{}'...".format(args.load_path))
+  model = PPO2.load(args.load_path, env, verbose=0)
+else:
+  #create new model
+  #model = PPO2(MlpLstmPolicy, env, verbose=0, nminibatches=1)#have to set minibatches to 1
+  model = PPO2(MlpPolicy, env, verbose=0)
+
+sys.stdout.flush()
+
+#some large number
+fluct_life = 999999999999
+training_step_counter = 0
+
+#assume we're continuing where we left off
+if args.save_path == args.load_path:
+  #TODO: training_step_counter = something
+  pass
 
 def cb(locals, globals):
   global training_step_counter
@@ -80,22 +103,24 @@ def save_model():
   print("Saving model to {}".format(path))
   model.save(path)
 
-#some large number
-fluct_life = 999999999999
-training_step_counter = 0
+  sys.stdout.flush()
+
+def delete_model():
+  if args.save_path is None:
+    return
+
+  file = "{}.pkl".format(args.save_path)
+
+  if os.path.isfile(file):
+    #TODO: handle deleting all model_step files
+    print("Removing model '{}'".format(args.save_path))
+    os.remove(file)
+
+  sys.stdout.flush()
 
 #TODO: train on one episode???
 while True:
   model.learn(fluct_life, cb)
 
-#TODO: loading
-del model # remove to demonstrate saving and loading
-
-model = PPO2.load("models/ppo2_mcrl")
-
-# Enjoy trained agent
-obs = env.reset()
-while True:
-    action, _states = model.predict(obs)
-    obs, rewards, dones, info = env.step(action)
-    env.render()
+if args.remove_on_end:
+  delete_model();

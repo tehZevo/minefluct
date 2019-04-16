@@ -14,7 +14,7 @@ program
   .option("-l, --load-name [loadName]", "Load a fluct as the starting point")
   .option("-n, --name [name]", "Fluctling name", "Bot")
   .option("-s, --script [script]", "Agent script type", "baselines")
-  .option("-x, --exit-on-death", "Quit when bot dies")
+  .option("-k, --no-kill", "Prevent exiting on death")
   .parse(process.argv);
 
 var script = program.script;
@@ -49,7 +49,7 @@ process.on('SIGINT', function() {
 env.bot.on("death", () =>
 {
   //end agent script on death
-  if(!program.exitOnDeath)
+  if(!program.kill)
   {
     return;
   }
@@ -63,7 +63,19 @@ env.bot.on("death", () =>
 //when bot disconnects
 env.bot.on("end", () =>
 {
-  agent.kill("SIGINT");
+  //if we set the dead flag (permadeath)
+  if(isDead)
+  {
+    //interrupt python process, this should trigger a clean save and exit
+    agent.kill("SIGINT");
+    //quit
+    process.exit(0);
+  }
+
+  //TODO: attempt to resurrect? idk
+
+  //otherwise we likely dced due to an error
+  process.exit(1);
 });
 
 //keras-rl
@@ -110,15 +122,6 @@ agent.stderr.on('data', function(data) {
 
 agent.stdout.on("close", () =>
 {
-  //if we set the dead flag (permadeath)
-  if(isDead)
-  {
-    //quit
-    process.exit(0);
-  }
-
-  //TODO: attempt to resurrect? idk
-
-  //otherwise we likely dced due to an error
-  process.exit(1);
+  //quit bot
+  env.bot.quit();
 })

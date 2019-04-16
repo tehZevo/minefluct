@@ -77,7 +77,8 @@ function spawnFluct()
   var name = "Bot-" + species.human({allowMultipleNames: false})
   //var name = "Bot-" + (flucts.length + 1)
 
-  var fluct = fork("mineFluct.js", ["--name", name], {silent: true});
+  var args = ["--name", name, "--exit-on-death"];
+  var fluct = fork("mineFluct.js", args, {silent: true});
 
   var o = {};
   o.process = fluct;
