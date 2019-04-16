@@ -1,6 +1,7 @@
 from gym import spaces
 import gym
 import requests
+import numpy as np
 
 class RemoteEnv(gym.Env):
   def __init__(self, base_url):
@@ -38,7 +39,9 @@ class RemoteEnv(gym.Env):
     r = requests.post(self.base_url + "/step", data={"action": action})
     r.raise_for_status()
     r = r.json()
+
     obs, reward, done, info = (r[0], r[1], r[2], r[3])
+    obs = np.zeros(self.observation_space.shape)
 
     info = {} if info is None else info
 

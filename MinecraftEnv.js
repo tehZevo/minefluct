@@ -75,16 +75,18 @@ module.exports = class MinecraftEnv extends EnvironmentServer
     actions[action](this);
 
     //calculate reward
-    var dExp = this.bot.experience.points - this.lastExp;
     var reward = 0;
-    //reward += dExp * EXP_SCALE;
-    reward += this.deathReward;
-    this.deathReward = 0;
 
-    if(dExp != 0)
+    if(this.lastExp != null)
     {
-      var plus = dExp >= 0 ? "+" : "";
-      console.log(`${plus}${dExp} exp (${this.bot.experience.points} total)`);
+      var dExp = this.bot.experience.points - this.lastExp;
+      reward += dExp * EXP_SCALE;
+
+      // if(dExp != 0)
+      // {
+      //   var plus = dExp >= 0 ? "+" : "";
+      //   console.log(`${plus}${dExp} exp (${this.bot.experience.points} total)`);
+      // }
     }
 
     this.lastExp = this.bot.experience.points;
@@ -93,7 +95,8 @@ module.exports = class MinecraftEnv extends EnvironmentServer
 
     //var closest = this.getClosestEnt("mob");
     //reward += -this.bot.entity.position.distanceTo(closest ? closest.position : new Vec3(-231, 64, -40)) / 1000;
-    reward += -this.bot.entity.position.distanceTo(new Vec3(-232, 64, -40)) / 1000;
+    //reward += -this.bot.entity.position.distanceTo(new Vec3(-232, 64, -40)) / 1000;
+    //console.log(reward)
 
     //reward for performing last action (jump)
     //reward = action == actions.length - 1 ? 1 : 0;

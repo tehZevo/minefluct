@@ -2,17 +2,19 @@
 import numpy as np
 import gym
 import argparse
+import sys
 
 from stable_baselines.common.policies import MlpPolicy, MlpLstmPolicy
 from stable_baselines.common.vec_env import DummyVecEnv, VecFrameStack
 from stable_baselines import PPO2
 
 import matplotlib.pyplot as plt
-
-import sys
+import tensorflow as tf
 
 from remote_env import RemoteEnv
 from graph_stuff import graph_stuff
+
+tf.logging.set_verbosity(tf.logging.ERROR)
 
 #TODO: policy type
 #TODO: support framestack
@@ -34,22 +36,40 @@ n_cpu = 1 #gotta be 1 (controlling single minecraft agent..)
 #env = SubprocVecEnv([lambda: gym.make('CartPole-v1') for i in range(n_cpu)])
 env = VecFrameStack(DummyVecEnv([lambda: RemoteEnv(args.url) for i in range(n_cpu)]), args.frame_stack)
 
-model = PPO2(MlpLstmPolicy, env, verbose=0, nminibatches=1)#have to set minibatches to 1
+#model = PPO2(MlpLstmPolicy, env, verbose=0, nminibatches=1)#have to set minibatches to 1
+model = PPO2(MlpPolicy, env, verbose=0)
 
-iters = 0
+model_dir = "models"
+model_prefix = "ppo2_minefluct"
 
+def cb(locals, globals):
+  #TODO: maybe only save one per name?
+
+  global n_steps
+  n_steps += 1
+
+  if n_steps % log_steps == 0:
+    print("Training step {} complete.".format(n_steps))
+
+  if n_steps % save_steps == 0:
+    fn = "{}/{}_{}_{}".format(model_dir, model_prefix, name, n_steps)
+    print("saving model to {}".format(fn))
+    model.save(fn)
+
+  sys.stdout.flush()
+
+#some large number
 fluct_life = 999999999999
-#TODO: callback for checkpoints
+n_steps = 0
 
+log_steps = 1
+save_steps = 10
+
+#TODO: train on one episode???
 while True:
-  print("Iteration {} (steps)".format(iters + 1))
-  model.learn(fluct_life)
+  model.learn(fluct_life, cb)
 
-  iters += 1
-  model.save("models/ppo2_mcrl_{}_{}".format(name, iters))
-
-
-#TODO: checkpointing/loading
+#TODO: loading
 del model # remove to demonstrate saving and loading
 
 model = PPO2.load("models/ppo2_mcrl")

@@ -5,7 +5,7 @@ var Administrator = require("./Administrator.js");
 
 var admin = new Administrator("Quinella");
 
-var MONITOR_DELAY = 1000 * 1
+var MONITOR_DELAY = 1000 * 1;
 var CREATE_DELAY = 1000 * 4;
 var FLUCT_QUOTA = 10;
 
