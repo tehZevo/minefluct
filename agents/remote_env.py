@@ -41,7 +41,7 @@ class RemoteEnv(gym.Env):
     r = r.json()
 
     obs, reward, done, info = (r[0], r[1], r[2], r[3])
-    obs = np.zeros(self.observation_space.shape)
+    #obs = np.zeros(self.observation_space.shape) #oops.. left this in lol
 
     info = {} if info is None else info
 
