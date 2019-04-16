@@ -3,6 +3,8 @@ import numpy as np
 import gym
 import argparse
 import sys
+import signal
+import sys
 
 from stable_baselines.common.policies import MlpPolicy, MlpLstmPolicy
 from stable_baselines.common.vec_env import DummyVecEnv, VecFrameStack
@@ -29,6 +31,12 @@ parser.add_argument('--url', type=str, default="http://localhost:8080")
 parser.add_argument("--frame_stack", type=int, default=1)
 
 args = parser.parse_args()
+
+def signal_handler(sig, frame):
+        print('You pressed Ctrl+C!')
+        sys.exit(0)
+signal.signal(signal.SIGINT, signal_handler)
+
 name = args.name
 
 # multiprocess environment

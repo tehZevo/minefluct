@@ -35,13 +35,13 @@ module.exports = [
   forward, back, left, right,
 
   //other movement options
-  jump, // sprint, sneak,
+  jump, sprint, sneak,
 
   //interactions
-  attack, // activateItem, dig, placeBlock,
+  attack, activateItem, //dig, placeBlock,
 
   //UI
-  //quickBarNext,
+  quickBarNext,
 
   //cursor control
   cursorEast, cursorUp, cursorSouth, cursorWest, cursorDown, cursorNorth,

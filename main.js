@@ -10,8 +10,13 @@ var CREATE_DELAY = 1000 * 4;
 var FLUCT_QUOTA = 10;
 
 //TODO: disconnect handler
-//TODO: memory management (remove listeners? idk if theres anything to do)
-//TODO: put each minefluct in its own process
+//TODO: generate fluct command
+//TODO: multiplex minecraft envs so we can have multiple players controlled with 1 fluct...?
+//  what happens when they die...???
+
+//TODO: survival of the fittest sorta?
+//  while bot is alive, other bots can spawn with a copy of their minefluct
+//  but when bot dies, their minefluct dies too
 
 var flucts = [];
 
@@ -47,14 +52,13 @@ function monitor()
   flucts = flucts.filter((e) => !e.exited);
 }
 
-//TODO: listen for fluct close/exit
 function create()
 {
   if(flucts.length < FLUCT_QUOTA)
   {
     var msg = `Fluct deficit detected (${flucts.length}/${FLUCT_QUOTA}), spawning.`;
-    console.log(msg);
-    admin.bot.chat(msg);
+    //console.log(msg);
+    //admin.bot.chat(msg);
     var fluct = spawnFluct();
     flucts.push(fluct);
 
@@ -77,7 +81,7 @@ function spawnFluct()
 
   var o = {};
   o.process = fluct;
-  o.exited = false;
+  o.status = "alive";
   o.name = name;
 
   var header = `---${name}---`;
@@ -87,8 +91,16 @@ function spawnFluct()
 
   fluct.once("exit", (code) =>
   {
-    //TODO: if code is 0, its a death, else error (and relaunch?)
-    o.exited = true;
+    //if code is not 0, assume crash and reload the fluct later
+    if(code != 0)
+    {
+      console.log(`${o.name} exited with code ${code}, setting status to 'crashed'.`);
+      o.status = "crashed";
+
+      return;
+    }
+    //otherwise, it was a normal exit due to player death
+    o.status = "dead";
   });
 
   return o;

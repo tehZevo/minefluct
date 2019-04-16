@@ -72,6 +72,9 @@ function entity(bot, e, local=true)
 
   var ret = e == null ? [0] : [1]; //exists
 
+  var name = e == null ? "" : (e.username || e.displayName || e.type);
+
+  ret.push(...worldsWorstStringEncoder(name));
   ret.push(...[p.x, p.y, p.z].map((e) => e * GLOBAL_POS_SCALE)); //position
   ret.push(...[v.x, v.y, v.z].map((e) => e * VEL_SCALE)); //velocity
   ret.push(...[yaw, pitch].map((e) => e * ANG_SCALE)); //angles (yaw/pitch)

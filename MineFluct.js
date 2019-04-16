@@ -17,6 +17,8 @@ program
 
 var name = program.name;
 var script = program.script;
+var agent = null;
+var isDead = false;
 
 var env = new MinecraftEnv(name);
 env.listen(0);
@@ -24,7 +26,49 @@ env.listen(0);
 var port = env.server.address().port;
 var url = "http://localhost:" + port;
 
-var agent = null;
+//normal behavior:
+//  bot dies
+//  disconnect bot
+//  interrupt python script
+//  wait for python script to end
+//  exit(0)
+
+//crash behavior:
+//  bot disconnects
+//  interrupt python script & wait
+//  exit(1)
+
+env.bot.on("death", () =>
+{
+  //end agent script on death
+  if(!program.kill)
+  {
+    return;
+  }
+
+  isDead = true;
+
+  //quit
+  setTimeout(() => env.bot.quit(), 100);
+});
+
+//when bot disconnects
+env.bot.on("end", () =>
+{
+  //if we set the dead flag (permadeath)
+  if(isDead)
+  {
+    //interrupt python process, this should trigger a clean save and exit
+    agent.kill("SIGINT");
+    //quit
+    process.exit(0);
+  }
+
+  //TODO: attempt to resurrect? idk
+
+  //otherwise we likely dced due to an error
+  process.exit(1);
+});
 
 //keras-rl
 if(script == "keras")
@@ -45,25 +89,12 @@ agent.stdout.on('data', function(data) {
 });
 
 agent.stderr.on('data', function(data) {
+  //TODO: quit bot?
   console.log(data.toString());
 });
 
-env.bot.on("end", () =>
+agent.stdout.on("close", () =>
 {
-  //quit
-  process.exit(0);
-});
-
-env.bot.on("death", () =>
-{
-  if(!program.kill)
-  {
-    return;
-  }
-
-  //TODO: tell python process to save and then quit?
-  //murder python process
-  agent.kill("SIGINT");
-
-  setTimeout(() => env.bot.quit(), 100);
+  //quit bot
+  env.bot.quit();
 })
