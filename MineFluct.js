@@ -6,6 +6,7 @@ var MinecraftEnv = require("./MinecraftEnv.js");
 
 //TODO: use
 var NAME_PREFIX = "Bot-";
+var MODEL_DIR = "models";
 
 //TODO: host/port of the minecraft server to connect to (default to localhost:25565)
 
@@ -71,6 +72,7 @@ env.bot.on("end", () =>
 });
 
 //keras-rl
+//TODO: update keras rl agent script to use similar params?
 if(script == "keras")
 {
   agent = spawn('python', ["agents/keras-rl.py",
@@ -79,9 +81,11 @@ if(script == "keras")
 //stable-baselines
 else if(script == "baselines")
 {
+  //TODO: --load-path
   agent = spawn('python', ["agents/stable-baselines.py",
-    "--url", url, "--name", name]);
+    "--url", url, "--save-path", MODEL_DIR + "/" + name]);
 }
+
 //TODO: tensorforce
 
 agent.stdout.on('data', function(data) {

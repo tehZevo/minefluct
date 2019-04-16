@@ -19,25 +19,37 @@ from graph_stuff import graph_stuff
 tf.logging.set_verbosity(tf.logging.ERROR)
 
 #TODO: policy type
-#TODO: support framestack
-#TODO: checkpointing (interval?)
 #TODO: random seed?
-#TODO: reset_num_timesteps for resetting log step numbers
 #TODO: tensorboard logging
 #TODO: learning rate (and other ppo2 args)
+#TODO: model prefix based on params?
 parser = argparse.ArgumentParser()
-parser.add_argument('--name', type=str, default="bot")
+parser.add_argument("--load-path", type=str, default=None)
+parser.add_argument("--save-path", type=str, default=None)
 parser.add_argument('--url', type=str, default="http://localhost:8080")
-parser.add_argument("--frame_stack", type=int, default=1)
+parser.add_argument("--frame-stack", type=int, default=1)
+parser.add_argument('--save-multiple', action='store_true')
+parser.add_argument("--save-steps", type=int, default=1)
+parser.add_argument("--log-steps", type=int, default=1)
 
 args = parser.parse_args()
 
 def signal_handler(sig, frame):
-        print('You pressed Ctrl+C!')
-        sys.exit(0)
+  save_model() #or not
+  sys.exit(0)
+
 signal.signal(signal.SIGINT, signal_handler)
 
-name = args.name
+#TODO: handle load path
+
+#TODO: handle load and save path being the same with save-multiple enabled,
+#  it should increment the steps number
+#  basically if load path == save path, then iters = number at end of load path
+#  (parseint from right of path, or split path on _, then select [-1])
+
+#TODO: use warnings module
+if args.save_path is None:
+  print("Warning: no save_path provided. Model will not be saved.");
 
 # multiprocess environment
 n_cpu = 1 #gotta be 1 (controlling single minecraft agent..)
@@ -47,31 +59,30 @@ env = VecFrameStack(DummyVecEnv([lambda: RemoteEnv(args.url) for i in range(n_cp
 #model = PPO2(MlpLstmPolicy, env, verbose=0, nminibatches=1)#have to set minibatches to 1
 model = PPO2(MlpPolicy, env, verbose=0)
 
-model_dir = "models"
-model_prefix = "ppo2_minefluct"
-
 def cb(locals, globals):
-  #TODO: maybe only save one per name?
+  global training_step_counter
+  training_step_counter += 1
 
-  global n_steps
-  n_steps += 1
+  if training_step_counter % args.log_steps == 0:
+    print("Training step {} complete.".format(training_step_counter))
 
-  if n_steps % log_steps == 0:
-    print("Training step {} complete.".format(n_steps))
-
-  if n_steps % save_steps == 0:
-    fn = "{}/{}_{}_{}".format(model_dir, model_prefix, name, n_steps)
-    print("Saving model to {}".format(fn))
-    model.save(fn)
+  if training_step_counter % args.save_steps == 0:
+    save_model()
 
   sys.stdout.flush()
 
+def save_model():
+  #if save path is none, just bail
+  if args.save_path is None:
+    return
+
+  path = "{}_{}".format(args.save_path, training_step_counter) if args.save_multiple else args.save_path
+  print("Saving model to {}".format(path))
+  model.save(path)
+
 #some large number
 fluct_life = 999999999999
-n_steps = 0
-
-log_steps = 1
-save_steps = 10
+training_step_counter = 0
 
 #TODO: train on one episode???
 while True:
