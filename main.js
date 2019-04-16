@@ -23,13 +23,11 @@ process.on("uncaughtException", (err) =>
 setInterval(monitor, MONITOR_DELAY);
 setInterval(create, CREATE_DELAY);
 
-create();
-monitor();
+//create();
+//monitor();
 
 function monitor()
 {
-  console.log("flucts: " + flucts.length);
-
   for(var i = 0; i < flucts.length; i++)
   {
     var f = flucts[i];
@@ -48,21 +46,31 @@ function monitor()
 }
 
 //TODO: listen for fluct close/exit
-
 function create()
 {
   if(flucts.length < FLUCT_QUOTA)
   {
+    var msg = `Fluct deficit detected (${flucts.length}/${FLUCT_QUOTA}), spawning.`;
+    console.log(msg);
+    admin.bot.chat(msg);
     var fluct = spawnFluct();
     flucts.push(fluct);
+
+    if(flucts.length >= FLUCT_QUOTA)
+    {
+      msg = `Fluct quota (${FLUCT_QUOTA}) reached.`;
+      console.log(msg);
+      admin.bot.chat(msg);
+    }
   }
 }
 
+//TODO: system command for generating a fluct (move this to administrator)
 function spawnFluct()
 {
   var name = "Bot-" + species.human({allowMultipleNames: false})
   //var name = "Bot-" + (flucts.length + 1)
-  console.log("hi")
+
   var fluct = fork("mineFluct.js", ["--name", name], {silent: true});
 
   var o = {};
@@ -70,8 +78,10 @@ function spawnFluct()
   o.exited = false;
   o.name = name;
 
-  fluct.stdout.on("data", (data) => console.log(`---${name}---\n` + data.toString()));
-  fluct.stderr.on("data", (data) => console.error(`---${name}---\n` + data.toString()));
+  var header = `---${name}---`;
+  var footer = new Array(header.length).fill("-").join("");
+  fluct.stdout.on("data", (data) => console.log(`${header}\n` + data.toString() + `${footer}`));
+  fluct.stderr.on("data", (data) => console.error(`${header}\n` + data.toString() + `${footer}`));
 
   fluct.once("exit", (code) =>
   {

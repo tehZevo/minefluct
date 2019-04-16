@@ -51,17 +51,26 @@ module.exports = class MinecraftEnv extends EnvironmentServer
       //password: null,
     });
 
-    this.bot.on("respawn", () =>
+    this.spawned = false
+
+    //spawn will be called after death.
+    //its only immediately after login where it fails by default
+    this.bot.on("spawn", () =>
     {
-      console.log(this.bot.health);
+      //TODO: toggle for saying this only in admin managed mode?
+      this.bot.chat("System call: Generate crystalline element, sword shape.");
     })
 
-    this.bot.on("death", () =>
+    //hopefully this will suffice as a spawn replacement for now
+    //see https://github.com/PrismarineJS/mineflayer/issues/783
+    this.bot.on("health", () =>
     {
-      this.isDead = true;
+      if(!this.spawned)
+      {
+        this.bot.emit("spawn");
+        this.spawned = true;
+      }
     });
-
-    this.isDead = false;
   }
 
   async step(action)

@@ -31,8 +31,18 @@ var cursorNorth = (env) => env.moveCursor(0, 0, -CURSOR_STEP);
 
 //TODO: sprint
 module.exports = [
-  forward, back, left, right, jump, // sprint, sneak,
-  //attack,// activateItem,// dig,
-  //placeBlock, quickBarNext,
-  //cursorEast, cursorUp, cursorSouth, cursorWest, cursorDown, cursorNorth,
+  //primary movement
+  forward, back, left, right,
+
+  //other movement options
+  jump, // sprint, sneak,
+
+  //interactions
+  attack, // activateItem, dig, placeBlock,
+
+  //UI
+  //quickBarNext,
+
+  //cursor control
+  cursorEast, cursorUp, cursorSouth, cursorWest, cursorDown, cursorNorth,
 ];

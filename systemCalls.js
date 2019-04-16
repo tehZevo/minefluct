@@ -1,7 +1,7 @@
 
 var callTree = { "system call": {
   "generate": {
-    "cyrstalline element": {
+    "crystalline element": {
       "sword shape": (admin, user) => admin.bot.chat(`/give ${user} diamond_sword`),
     }
   }
@@ -9,16 +9,18 @@ var callTree = { "system call": {
 
 var calls = {};
 
-function buildCallList(tree=callTree, prefix="")
+function buildCallList(tree=callTree, prefix)
 {
   for(var key in tree)
   {
+    var subKey = prefix == null ? key : prefix + " " + key;
+
     if(typeof tree[key] == "function")
     {
-      return calls[prefix + " " + key] = tree[key];
+      return calls[subKey] = tree[key];
     }
 
-    buildCallList(tree[key], prefix + " " + key);
+    buildCallList(tree[key], subKey);
   }
 
 }

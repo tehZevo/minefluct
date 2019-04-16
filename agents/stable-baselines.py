@@ -53,7 +53,7 @@ def cb(locals, globals):
 
   if n_steps % save_steps == 0:
     fn = "{}/{}_{}_{}".format(model_dir, model_prefix, name, n_steps)
-    print("saving model to {}".format(fn))
+    print("Saving model to {}".format(fn))
     model.save(fn)
 
   sys.stdout.flush()

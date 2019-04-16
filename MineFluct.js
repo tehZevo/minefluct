@@ -14,6 +14,7 @@ var MAX_ENTS = 1;
 program
   .option("-n, --name [name]", "Fluctling name", "Bot")
   .option("-s, --script [script]", "Agent script type", "baselines")
+  .option("-k, --no-kill", "Prevent exiting on death")
   .parse(process.argv);
 
 var name = program.name;
@@ -21,8 +22,6 @@ var script = program.script;
 
 var env = new MinecraftEnv(name, MAX_ENTS);
 env.listen(0);
-
-console.log(program.name)
 
 var port = env.server.address().port;
 var url = "http://localhost:" + port;
@@ -59,6 +58,11 @@ env.bot.on("end", () =>
 
 env.bot.on("death", () =>
 {
+  if(!program.kill)
+  {
+    return;
+  }
+
   //TODO: tell python process to save and then quit?
   //murder python process
   agent.kill("SIGINT");

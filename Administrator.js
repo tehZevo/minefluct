@@ -42,11 +42,12 @@ module.exports = class Administrator
 
   systemCall(user, call)
   {
-    call = call.split(/\s+/).slice(2).join(" ");
+    call = call.replace(/[^a-zA-Z\d\s]/g, "");
+    call = call.split(/\s+/g).join(" ");
 
     if(call in systemCalls)
     {
-      this.bot.chat("Executing system call...")
+      //this.bot.chat("Executing system call...")
       systemCalls[call](this, user);
     }
   }
