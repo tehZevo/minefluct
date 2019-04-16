@@ -6,8 +6,6 @@ var MinecraftEnv = require("./MinecraftEnv.js");
 
 //TODO: use
 var NAME_PREFIX = "Bot-";
-//TODO: parameterize
-var MAX_ENTS = 1;
 
 //TODO: host/port of the minecraft server to connect to (default to localhost:25565)
 
@@ -20,7 +18,7 @@ program
 var name = program.name;
 var script = program.script;
 
-var env = new MinecraftEnv(name, MAX_ENTS);
+var env = new MinecraftEnv(name);
 env.listen(0);
 
 var port = env.server.address().port;

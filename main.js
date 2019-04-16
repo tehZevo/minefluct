@@ -26,6 +26,9 @@ setInterval(create, CREATE_DELAY);
 //create();
 //monitor();
 
+//TODO: add delta health/armor/hunger as reward?
+//TODO: add loading
+
 function monitor()
 {
   for(var i = 0; i < flucts.length; i++)
@@ -33,9 +36,8 @@ function monitor()
     var f = flucts[i];
     if(f.exited)
     {
-      //TODO: admin.bot.say
-      console.log("fluct is dead, removing");
-      admin.bot.chat("Fluct '" + f.name + "' is dead, removing.");
+      //console.log("fluct is dead, removing");
+      //admin.bot.chat("Fluct '" + f.name + "' is dead, removing.");
       //TODO: do something (clear inventory? idk. move that to minefluct)
 
       //TODO: delete user file (uuid?)

@@ -8,11 +8,17 @@ var EnvironmentServer = require("./EnvironmentServer.js");
 
 var ATTACK_DIST = 4;
 var MAX_RANGE = 1000;
-var EXP_SCALE = 1/10;
+var EXP_SCALE = 1/7;
+var HEALTH_SCALE = 1/5;
+var FOOD_SCALE = 1/5;
+var ARMOR_SCALE = 1/5;
 var ANGLE = Math.PI * 2 / 30;
 
-var CURSOR_BOX_SIZE = 1;
-var CURSOR_FIND_SIZE = 1;
+//TODO: parameterize
+var MAX_ENTS = 4;
+
+var CURSOR_BOX_SIZE = 2;
+var CURSOR_FIND_SIZE = 2;
 var CURSOR_OFFSET = new Vec3(0, 1, 0);
 
 var DIRS = [new Vec3(0, 1, 0), new Vec3(1, 0, 0), new Vec3(0, 0, 1),
@@ -20,7 +26,7 @@ var DIRS = [new Vec3(0, 1, 0), new Vec3(1, 0, 0), new Vec3(0, 0, 1),
 
 module.exports = class MinecraftEnv extends EnvironmentServer
 {
-  constructor(name="bot", maxEnts=1)
+  constructor(name="bot")
   {
     //TODO: fix low/high of box...
     super({
@@ -29,7 +35,7 @@ module.exports = class MinecraftEnv extends EnvironmentServer
       high: 1,
       //player + held item + maxents + cursor + block near cursor
       //TODO: better way of handling state size
-      shape: [encoders.block().length + 3 + encoders.item().length + (maxEnts + 1) * encoders.entity().length],
+      shape: [encoders.block().length + 3 + encoders.item().length + (MAX_ENTS + 1) * encoders.entity().length],
       dtype: "float32",
     }, {
       type: "discrete",
@@ -37,7 +43,10 @@ module.exports = class MinecraftEnv extends EnvironmentServer
     });
 
     this.lastExp = null;
-    this.maxEnts = maxEnts;
+    this.lastHealth = null;
+    this.lastArmor = null; //TODO: how to armor?
+    this.lastFood = null;
+    this.maxEnts = MAX_ENTS;
 
     this.cursor = new Vec3(0, 0, 0);
 
@@ -73,6 +82,32 @@ module.exports = class MinecraftEnv extends EnvironmentServer
     });
   }
 
+  //calculate reward based on changes in exp/health/food (TODO: armor)
+  calcResourceReward()
+  {
+    var reward = 0;
+
+    if(this.lastExp != null)
+    {
+      var dExp = this.bot.experience.points - this.lastExp;
+      reward += dExp * EXP_SCALE;
+    }
+
+    if(this.lastHealth != null)
+    {
+      var dHealth = this.bot.health - this.lastHealth;
+      reward += dHealth * HEALTH_SCALE;
+    }
+
+    if(this.lastFood != null)
+    {
+      var dFood = this.bot.food - this.lastFood;
+      reward += dFood * FOOD_SCALE;
+    }
+
+    return reward;
+  }
+
   async step(action)
   {
     //reset movement and look
@@ -85,45 +120,19 @@ module.exports = class MinecraftEnv extends EnvironmentServer
 
     //calculate reward
     var reward = 0;
-
-    if(this.lastExp != null)
-    {
-      var dExp = this.bot.experience.points - this.lastExp;
-      reward += dExp * EXP_SCALE;
-
-      // if(dExp != 0)
-      // {
-      //   var plus = dExp >= 0 ? "+" : "";
-      //   console.log(`${plus}${dExp} exp (${this.bot.experience.points} total)`);
-      // }
-    }
+    reward += this.calcResourceReward();
 
     this.lastExp = this.bot.experience.points;
+    this.lastHealth = this.bot.health;
+    this.lastFood = this.bot.food;
+    //this.lastArmor = ??
 
     this.curSteps++;
 
-    //var closest = this.getClosestEnt("mob");
-    //reward += -this.bot.entity.position.distanceTo(closest ? closest.position : new Vec3(-231, 64, -40)) / 1000;
-    //reward += -this.bot.entity.position.distanceTo(new Vec3(-232, 64, -40)) / 1000;
     //console.log(reward)
 
-    //reward for performing last action (jump)
-    //reward = action == actions.length - 1 ? 1 : 0;
-
-    //reward for being near diamond ore
-    // var dDist = 5;
-    // var diamond = this.findNearestBlock("diamond_ore", dDist);
-    // if(diamond == null)
-    // {
-    //   //console.log("no diamond?!?");
-    // }
-    // else
-    // {
-    //   reward = (dDist - diamond.position.distanceTo(this.bot.entity.position)) / dDist;
-    // }
-
     var obs = this.getState();
-    var done = false; //reset from agent.py //this.curSteps >= this.maxSteps;
+    var done = false; //never never stop no never
     var info = null;
 
     await new Promise((res) => setTimeout(res, this.wait));
@@ -280,6 +289,8 @@ module.exports = class MinecraftEnv extends EnvironmentServer
     //add self entity to state
     state.push(...encoders.entity(this.bot, this.bot.entity, false));
 
+    //TODO: push health, armor, food
+
     //push cursor position
     var c = this.cursor;
     state.push(...[c.x, c.y, c.z]);
@@ -314,6 +325,10 @@ module.exports = class MinecraftEnv extends EnvironmentServer
     //TODO: have admin reset or something? idk
 
     this.lastExp = null;
+    this.lastFood = null;
+    this.lastArmor = null;
+    this.lastHealth = null;
+
     this.curSteps = 0;
 
     return this.getState();
