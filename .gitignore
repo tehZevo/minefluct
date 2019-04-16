@@ -1,6 +1,6 @@
 ﻿##minefluct gitignore
 models/*
-stable-baselines/
+agents/stable-baselines/
 
 ##python gitignore
 

@@ -1,6 +1,5 @@
-const spawn = require("child_process").spawn;
+const fork = require("child_process").fork;
 const { species, parties, places } = require('fantastical')
-var MineFluct = require("./MineFluct.js");
 
 var Administrator = require("./Administrator.js");
 
@@ -24,6 +23,9 @@ process.on("uncaughtException", (err) =>
 setInterval(monitor, MONITOR_DELAY);
 setInterval(create, CREATE_DELAY);
 
+create();
+monitor();
+
 function monitor()
 {
   console.log("flucts: " + flucts.length);
@@ -31,7 +33,7 @@ function monitor()
   for(var i = 0; i < flucts.length; i++)
   {
     var f = flucts[i];
-    if(f.isDead)
+    if(f.exited)
     {
       //TODO: admin.bot.say
       console.log("fluct is dead, removing");
@@ -42,19 +44,39 @@ function monitor()
     }
   }
 
-  flucts = flucts.filter((e) => !e.isDead);
+  flucts = flucts.filter((e) => !e.exited);
 }
+
+//TODO: listen for fluct close/exit
 
 function create()
 {
-  //TODO: generate new flucts?
   if(flucts.length < FLUCT_QUOTA)
   {
-    //var name = "Bot-" + species.human({allowMultipleNames: false})
-    var name = "Bot-" + (flucts.length + 1)
-
-    var fluct = new MineFluct(name);
-
+    var fluct = spawnFluct();
     flucts.push(fluct);
   }
+}
+
+function spawnFluct()
+{
+  //var name = "Bot-" + species.human({allowMultipleNames: false})
+  var name = "Bot-" + (flucts.length + 1)
+  console.log("hi")
+  var fluct = fork("mineFluct.js", ["--name", name], {silent: true});
+
+  var o = {};
+  o.process = fluct;
+  o.exited = false;
+
+  fluct.stdout.on("data", (data) => console.log(`---${name}---\n` + data.toString()));
+  fluct.stderr.on("data", (data) => console.error(`---${name}---\n` + data.toString()));
+
+  fluct.once("exit", (code) =>
+  {
+    //TODO: if code is 0, its a death, else error (and relaunch?)
+    o.exited = true;
+  });
+
+  return o;
 }
