@@ -16,7 +16,7 @@ var jump = (env) => env.bot.setControlState("jump", true);
 var turnLeft = (env) => env.bot.look(env.bot.entity.yaw - TURN_ANGLE, 0);
 var turnRight = (env) => env.bot.look(env.bot.entity.yaw + TURN_ANGLE, 0);
 //interaction
-var attack = (env) => env.attackNearestMob();
+var attack = (env) => env.attackNearCursor();
 var activateItem = (env) => env.bot.activateItem();
 var dig = (env) => env.digNearCursor();
 var placeBlock = (env) => env.placeBlockAtCursor();

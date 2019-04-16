@@ -6,7 +6,7 @@ var actions = require("./actions.js");
 
 var EnvironmentServer = require("./EnvironmentServer.js");
 
-var ATTACK_DIST = 2;
+var ATTACK_DIST = 4;
 var MAX_RANGE = 1000;
 var EXP_SCALE = 1/10;
 var ANGLE = Math.PI * 2 / 30;
@@ -111,16 +111,16 @@ module.exports = class MinecraftEnv extends EnvironmentServer
     //reward = action == actions.length - 1 ? 1 : 0;
 
     //reward for being near diamond ore
-    var dDist = 5;
-    var diamond = this.findNearestBlock("diamond_ore", dDist);
-    if(diamond == null)
-    {
-      //console.log("no diamond?!?");
-    }
-    else
-    {
-      reward = (dDist - diamond.position.distanceTo(this.bot.entity.position)) / dDist;
-    }
+    // var dDist = 5;
+    // var diamond = this.findNearestBlock("diamond_ore", dDist);
+    // if(diamond == null)
+    // {
+    //   //console.log("no diamond?!?");
+    // }
+    // else
+    // {
+    //   reward = (dDist - diamond.position.distanceTo(this.bot.entity.position)) / dDist;
+    // }
 
     var obs = this.getState();
     var done = false; //reset from agent.py //this.curSteps >= this.maxSteps;
@@ -129,17 +129,6 @@ module.exports = class MinecraftEnv extends EnvironmentServer
     await new Promise((res) => setTimeout(res, this.wait));
 
     return [obs, reward, done, info];
-  }
-
-  lookAtNearestMob()
-  {
-    var closest = this.getClosestEnt("mob");
-    if(closest == null)
-    {
-      return;
-    }
-
-    this.bot.lookAt(closest.position);
   }
 
   //calcs offset direction from a towards b
@@ -167,6 +156,27 @@ module.exports = class MinecraftEnv extends EnvironmentServer
   isBlockAir(block)
   {
     return block.name == "air" || block.name == "cave_air" || block.name == "void_air";
+  }
+
+  attackNearCursor()
+  {
+    //find near cursor, ignore self filter only mobs and player i guess
+    var closest = this.findEnts(this.cursorPosition(), CURSOR_FIND_SIZE,
+      ["mob", "player"], [this.bot.entity])[0]
+
+    if(closest == null)
+    {
+      return false;
+    }
+
+    if(closest.position.distanceTo(this.bot.entity.position) > ATTACK_DIST)
+    {
+      return false;
+    }
+
+    this.bot.attack(closest);
+
+    return true;
   }
 
   placeBlockAtCursor()
@@ -250,37 +260,16 @@ module.exports = class MinecraftEnv extends EnvironmentServer
     //this.bot.lookAt(this.cursorPosition());
   }
 
-  getClosestEnt(type)
-  {
-    var nearbyEnts = this.getNearbyEnts(MAX_RANGE);
-    nearbyEnts = nearbyEnts.filter((e) => e.type == type);
-
-    return nearbyEnts[0];
-  }
-
-  attackNearestMob()
-  {
-    var closest = this.getClosestEnt("mob");
-    if(closest == null)
-    {
-      return false;
-    }
-
-    if(closest.position.distanceTo(this.bot.entity.position) > ATTACK_DIST)
-    {
-      return false;
-    }
-
-    this.bot.attack(closest);
-
-    return true;
-  }
-
-  getNearbyEnts(distance)
+  findEnts(pos, distance, types=[], ignore=[])
   {
     var ents = Object.values(this.bot.entities);
-    ents = ents.filter((e) => e.position.distanceTo(this.bot.entity.position) <= distance);
-    ents.sort((a, b) => a.position.distanceTo(this.bot.entity.position) - b.position.distanceTo(this.bot.entity.position));
+
+    ents = ents.filter((e) => types.includes(e.type));
+    ents = ents.filter((e) => !ignore.includes(e));
+    ents = ents.filter((e) => e.position.distanceTo(pos) <= distance);
+
+    ents.sort((a, b) => a.position.distanceTo(pos) - b.position.distanceTo(pos));
+
     return ents;
   }
 
@@ -303,8 +292,9 @@ module.exports = class MinecraftEnv extends EnvironmentServer
     state.push(...encoders.item(this.bot, this.bot.entity.heldItem));
 
     //add nearby mobs to state
-    var nearbyEnts = this.getNearbyEnts(MAX_RANGE);
-    nearbyEnts = nearbyEnts.filter((e) => e.type == "mob");
+    var nearbyEnts = this.findEnts(this.bot.entity.position, MAX_RANGE,
+      ["mob", "player"], [this.bot.entity])
+
     for(var i = 0; i < this.maxEnts; i++)
     {
       var e = nearbyEnts[i];
