@@ -51,9 +51,13 @@ module.exports = class MinecraftEnv extends EnvironmentServer
       //password: null,
     });
 
+    this.bot.on("respawn", () =>
+    {
+      console.log(this.bot.health);
+    })
+
     this.bot.on("death", () =>
     {
-
       this.isDead = true;
     });
 

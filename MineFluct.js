@@ -51,12 +51,17 @@ agent.stderr.on('data', function(data) {
   console.log(data.toString());
 });
 
+env.bot.on("end", () =>
+{
+  //quit
+  process.exit(0);
+});
+
 env.bot.on("death", () =>
 {
   //TODO: tell python process to save and then quit?
   //murder python process
   agent.kill("SIGINT");
 
-  //quit
-  process.exit(0);
+  setTimeout(() => env.bot.quit(), 100);
 })

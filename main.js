@@ -6,7 +6,7 @@ var Administrator = require("./Administrator.js");
 var admin = new Administrator("Quinella");
 
 var MONITOR_DELAY = 1000 * 1
-var CREATE_DELAY = 1000 * 10;
+var CREATE_DELAY = 1000 * 4;
 var FLUCT_QUOTA = 10;
 
 //TODO: disconnect handler
@@ -60,14 +60,15 @@ function create()
 
 function spawnFluct()
 {
-  //var name = "Bot-" + species.human({allowMultipleNames: false})
-  var name = "Bot-" + (flucts.length + 1)
+  var name = "Bot-" + species.human({allowMultipleNames: false})
+  //var name = "Bot-" + (flucts.length + 1)
   console.log("hi")
   var fluct = fork("mineFluct.js", ["--name", name], {silent: true});
 
   var o = {};
   o.process = fluct;
   o.exited = false;
+  o.name = name;
 
   fluct.stdout.on("data", (data) => console.log(`---${name}---\n` + data.toString()));
   fluct.stderr.on("data", (data) => console.error(`---${name}---\n` + data.toString()));
