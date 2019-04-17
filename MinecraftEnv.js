@@ -1,21 +1,19 @@
 var mineflayer = require('mineflayer');
 var Vec3 = require("vec3");
 
-var encoders = require("./encoders.js");
 var actions = require("./actions.js");
-
+var O = require("./observations");
 var EnvironmentServer = require("./EnvironmentServer.js");
 
 var ATTACK_DIST = 4;
-var MAX_RANGE = 1000;
+var MAX_RANGE = 10;
 var EXP_SCALE = 1/7;
 var HEALTH_SCALE = 1/5;
 var FOOD_SCALE = 1/5;
 var ARMOR_SCALE = 1/5;
 var ANGLE = Math.PI * 2 / 30;
 
-//TODO: parameterize
-var MAX_ENTS = 4;
+var NUM_NEARBY_ENTS = 4;
 
 var CURSOR_BOX_SIZE = 2;
 var CURSOR_FIND_SIZE = 2;
@@ -37,30 +35,33 @@ module.exports = class MinecraftEnv extends EnvironmentServer
 {
   constructor(name="bot", available_actions=Object.keys(actions))
   {
-    //TODO: way to fix the obs size handling:
-    //  obs is an array of objects: {
-    //    size: 3, obs: () => somethingThatReturnsAPartialObservation()
-    //  }
-    //TODO: fix low/high of box...
+    var obs = [
+      new O.SelfEnt(),
+      new O.Vitals(),
+      new O.Controls(),
+      new O.Cursor(),
+      new O.NearbyBlock(),
+      new O.HeldItem(),
+      new O.NearbyEnts(NUM_NEARBY_ENTS, MAX_RANGE),
+    ];
+
+    //TODO: fix low/high of box... (pass low/high as arrays instead of shape)
     super({
       type: "box",
       low: 0,
       high: 1,
-      //player + held item + maxents + cursor + block near cursor
-      //TODO: better way of handling state size
-      //2 = health/food ughhh
-      shape: [2 + CONTROL_STATE_KEYS.length + encoders.block().length + 3 + encoders.item().length + (MAX_ENTS + 1) * encoders.entity().length],
+      shape: [O.getSize(obs)],
       dtype: "float32",
     }, {
       type: "discrete",
       n: available_actions.length,
     });
 
+    this.obs = obs;
     this.lastExp = null;
     this.lastHealth = null;
     this.lastArmor = null; //TODO: how to armor?
     this.lastFood = null;
-    this.maxEnts = MAX_ENTS;
     this.available_actions = available_actions;
     this.cursor = new Vec3(0, 0, 0);
 
@@ -301,39 +302,9 @@ module.exports = class MinecraftEnv extends EnvironmentServer
   getState()
   {
     var state = [];
-
-    //add self entity to state
-    state.push(...encoders.entity(this.bot, this.bot.entity, false));
-
-    //TODO: push armor
-    //TODO: push exp?
-    //sometimes health/food can be nan... slow spawn?
-    state.push((this.bot.health||0) / 20, (this.bot.food||0) / 20);
-
-    //push control state
-    state.push(...CONTROL_STATE_KEYS.map((e) => this.bot.controlState[e] ? 1 : 0));
-
-    //push cursor position
-    var c = this.cursor;
-    state.push(...[c.x, c.y, c.z]);
-
-    //push block near cursor (local)
-    var block = this.getBlockNearCursor();
-    state.push(...encoders.block(this.bot, block, true));
-
-    //add held item to state
-    state.push(...encoders.item(this.bot, this.bot.entity.heldItem));
-
-    //add nearby mobs to state
-    var nearbyEnts = this.findEnts(this.bot.entity.position, MAX_RANGE,
-      ["mob", "player"], [this.bot.entity])
-
-    for(var i = 0; i < this.maxEnts; i++)
+    for(var observation of this.obs)
     {
-      var e = nearbyEnts[i];
-
-      //push encoded entity with local position
-      state.push(...encoders.entity(this.bot, e, true));
+      state.push(...observation.getValues(this));
     }
 
     return state;

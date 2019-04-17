@@ -150,11 +150,19 @@ module.exports = class Administrator
     o.status = "alive";
     o.name = name;
 
-    var header = `---${name}---`;
+    var header = `[${name}]`;
     var footer = new Array(header.length).fill("-").join("");
     //TODO: prefix each line with header instead of using header-footer system
-    fluct.stdout.on("data", (data) => console.log(`${header}\n` + data.toString() + `${footer}`));
-    fluct.stderr.on("data", (data) => console.error(`${header}\n` + data.toString() + `${footer}`));
+    fluct.stdout.on("data", (data) =>
+    {
+      data = data.toString().trim().split("\n");
+      data.forEach((e) => console.log(`[${name}] ${e}`));
+    });
+    fluct.stderr.on("data", (data) =>
+    {
+      data = data.toString().trim().split("\n");
+      data.forEach((e) => console.error(`[${name}] ${e}`));
+    });
 
     fluct.once("exit", (code) =>
     {
