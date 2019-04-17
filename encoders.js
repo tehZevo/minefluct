@@ -17,6 +17,8 @@ var INCLUDE_ANGLE = true;
 //item encode settings
 var STACK_SCALE = 1/64;
 
+//TODO: include time
+
 //block encode settings
 var LIGHT_SCALE = 1/16;
 

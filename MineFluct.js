@@ -83,9 +83,7 @@ else if(script == "baselines")
     "--url", url,
     "--save-path", MODEL_DIR + "/" + program.name,
     "--remove-on-end",
-  ]
-
-  console.log(args)
+  ];
 
   //if we specified a fluct name to load
   if(program.loadName != null)

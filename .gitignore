@@ -1,6 +1,7 @@
 ﻿##minefluct gitignore
 models/*
 agents/stable-baselines/
+minecraft-server/
 
 ##python gitignore
 

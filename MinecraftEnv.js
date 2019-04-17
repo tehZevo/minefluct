@@ -26,7 +26,7 @@ var DIRS = [new Vec3(0, 1, 0), new Vec3(1, 0, 0), new Vec3(0, 0, 1),
 
 module.exports = class MinecraftEnv extends EnvironmentServer
 {
-  constructor(name="bot")
+  constructor(name="bot", available_actions=Object.keys(actions))
   {
     //TODO: fix low/high of box...
     super({
@@ -39,7 +39,7 @@ module.exports = class MinecraftEnv extends EnvironmentServer
       dtype: "float32",
     }, {
       type: "discrete",
-      n: actions.length,
+      n: available_actions.length,
     });
 
     this.lastExp = null;
@@ -47,7 +47,7 @@ module.exports = class MinecraftEnv extends EnvironmentServer
     this.lastArmor = null; //TODO: how to armor?
     this.lastFood = null;
     this.maxEnts = MAX_ENTS;
-
+    this.available_actions = available_actions;
     this.cursor = new Vec3(0, 0, 0);
 
     this.wait = 1000 / 10; //1 tick? //ms to delay responses
@@ -116,7 +116,7 @@ module.exports = class MinecraftEnv extends EnvironmentServer
     this.bot.lookAt(this.cursorPosition());
 
     //perform action
-    actions[action](this);
+    actions[this.available_actions[action]](this);
 
     //calculate reward
     var reward = 0;
