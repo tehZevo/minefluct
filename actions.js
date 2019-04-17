@@ -4,17 +4,23 @@ var TURN_ANGLE = Math.PI * 2 / 30;
 
 var CURSOR_STEP = 1;
 
-//TODO: either make actions multidiscrete, or add toggles for main movement options
-//  if we make movement toggleable, we have to store the movement status in the observation
+//TODO: convert to multidiscrete and remove toggles?
 
 //movement
-var forward = (env) => env.bot.setControlState("forward", true);
-var back = (env) => env.bot.setControlState("back", true);
-var left = (env) => env.bot.setControlState("left", true);
-var right = (env) => env.bot.setControlState("right", true);
-var sprint = (env) => env.bot.setControlState("sprint", true);
-var sneak = (env) => env.bot.setControlState("sneak", true);
-var jump = (env) => env.bot.setControlState("jump", true);
+var startForward = (env) => env.bot.setControlState("forward", true);
+var startBack = (env) => env.bot.setControlState("back", true);
+var startLeft = (env) => env.bot.setControlState("left", true);
+var startRight = (env) => env.bot.setControlState("right", true);
+var startSprint = (env) => env.bot.setControlState("sprint", true);
+var startSneak = (env) => env.bot.setControlState("sneak", true);
+var startJump = (env) => env.bot.setControlState("jump", true);
+var stopForward = (env) => env.bot.setControlState("forward", true);
+var stopBack = (env) => env.bot.setControlState("back", true);
+var stopLeft = (env) => env.bot.setControlState("left", true);
+var stopRight = (env) => env.bot.setControlState("right", true);
+var stopSprint = (env) => env.bot.setControlState("sprint", true);
+var stopSneak = (env) => env.bot.setControlState("sneak", true);
+var stopJump = (env) => env.bot.setControlState("jump", true);
 //pre-cursor turning
 var turnLeft = (env) => env.bot.look(env.bot.entity.yaw - TURN_ANGLE, 0);
 var turnRight = (env) => env.bot.look(env.bot.entity.yaw + TURN_ANGLE, 0);
@@ -35,10 +41,12 @@ var cursorNorth = (env) => env.moveCursor(0, 0, -CURSOR_STEP);
 //TODO: sprint
 module.exports = {
   //primary movement
-  forward, back, left, right,
+  startForward, startBack, startLeft, startRight,
+  stopForward, stopBack, stopLeft, stopRight,
 
   //other movement options
-  jump, sprint, sneak,
+  startJump, startSprint, startSneak,
+  stopJump, stopSprint, stopSneak,
 
   //interactions
   attack, activateItem, //dig, placeBlock,

@@ -21,13 +21,26 @@ var CURSOR_BOX_SIZE = 2;
 var CURSOR_FIND_SIZE = 2;
 var CURSOR_OFFSET = new Vec3(0, 1, 0);
 
+var CONTROL_STATE_KEYS = [
+  "forward", "back", "left", "right",
+  "jump", "sprint", "sneak"
+];
+
 var DIRS = [new Vec3(0, 1, 0), new Vec3(1, 0, 0), new Vec3(0, 0, 1),
   new Vec3(-1, 0, 0), new Vec3(0, -1, 0), new Vec3(0, 0, -1)];
 
+//TODO: subclass this for versions of mineflucts
+//  (for when observation/action spaces change)
+//  these subclasses should provide available_actions, override getState, and getReward
+//  getReward overriding will require tracking resource (exp/health/food) deltas
 module.exports = class MinecraftEnv extends EnvironmentServer
 {
   constructor(name="bot", available_actions=Object.keys(actions))
   {
+    //TODO: way to fix the obs size handling:
+    //  obs is an array of objects: {
+    //    size: 3, obs: () => somethingThatReturnsAPartialObservation()
+    //  }
     //TODO: fix low/high of box...
     super({
       type: "box",
@@ -35,7 +48,8 @@ module.exports = class MinecraftEnv extends EnvironmentServer
       high: 1,
       //player + held item + maxents + cursor + block near cursor
       //TODO: better way of handling state size
-      shape: [encoders.block().length + 3 + encoders.item().length + (MAX_ENTS + 1) * encoders.entity().length],
+      //2 = health/food ughhh
+      shape: [2 + CONTROL_STATE_KEYS.length + encoders.block().length + 3 + encoders.item().length + (MAX_ENTS + 1) * encoders.entity().length],
       dtype: "float32",
     }, {
       type: "discrete",
@@ -58,6 +72,7 @@ module.exports = class MinecraftEnv extends EnvironmentServer
       port: 25565,       // optional
       username: name,
       //password: null,
+      //version: "1.12.2", //TODO: specify version?
     });
 
     this.spawned = false
@@ -68,6 +83,7 @@ module.exports = class MinecraftEnv extends EnvironmentServer
     {
       //TODO: toggle for saying this only in admin managed mode?
       this.bot.chat("System call: Generate crystalline element, sword shape.");
+      //this.bot.whisper("Quinella", "System call: Generate crystalline element, sword shape.");
     })
 
     //hopefully this will suffice as a spawn replacement for now
@@ -289,7 +305,13 @@ module.exports = class MinecraftEnv extends EnvironmentServer
     //add self entity to state
     state.push(...encoders.entity(this.bot, this.bot.entity, false));
 
-    //TODO: push health, armor, food
+    //TODO: push armor
+    //TODO: push exp?
+    //sometimes health/food can be nan... slow spawn?
+    state.push((this.bot.health||0) / 20, (this.bot.food||0) / 20);
+
+    //push control state
+    state.push(...CONTROL_STATE_KEYS.map((e) => this.bot.controlState[e] ? 1 : 0));
 
     //push cursor position
     var c = this.cursor;

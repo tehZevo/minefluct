@@ -44,44 +44,6 @@ def signal_handler(sig, frame):
 
   sys.exit(0)
 
-signal.signal(signal.SIGINT, signal_handler)
-
-#TODO: handle load path
-
-#TODO: handle load and save path being the same with save-multiple enabled,
-#  it should increment the steps number
-#  basically if load path == save path, then iters = number at end of load path
-#  (parseint from right of path, or split path on _, then select [-1])
-
-#create environment
-n_cpu = 1 #gotta be 1 (controlling single minecraft agent..)
-#env = SubprocVecEnv([lambda: gym.make('CartPole-v1') for i in range(n_cpu)])
-env = VecFrameStack(DummyVecEnv([lambda: RemoteEnv(args.url) for i in range(n_cpu)]), args.frame_stack)
-
-#TODO: use warnings module
-if args.save_path is None:
-  print("Warning: no save_path provided. Model will not be saved.");
-
-if args.load_path is not None:
-  #load model
-  print("Loading '{}'...".format(args.load_path))
-  model = PPO2.load(args.load_path, env, verbose=0)
-else:
-  #create new model
-  #model = PPO2(MlpLstmPolicy, env, verbose=0, nminibatches=1)#have to set minibatches to 1
-  model = PPO2(MlpPolicy, env, verbose=0)
-
-sys.stdout.flush()
-
-#some large number
-fluct_life = 999999999999
-training_step_counter = 0
-
-#assume we're continuing where we left off
-if args.save_path == args.load_path:
-  #TODO: training_step_counter = something
-  pass
-
 def cb(locals, globals):
   global training_step_counter
   training_step_counter += 1
@@ -117,6 +79,46 @@ def delete_model():
     os.remove(file)
 
   sys.stdout.flush()
+
+signal.signal(signal.SIGINT, signal_handler)
+
+#TODO: handle load path
+
+#TODO: handle load and save path being the same with save-multiple enabled,
+#  it should increment the steps number
+#  basically if load path == save path, then iters = number at end of load path
+#  (parseint from right of path, or split path on _, then select [-1])
+
+#create environment
+n_cpu = 1 #gotta be 1 (controlling single minecraft agent..)
+#env = SubprocVecEnv([lambda: gym.make('CartPole-v1') for i in range(n_cpu)])
+env = VecFrameStack(DummyVecEnv([lambda: RemoteEnv(args.url) for i in range(n_cpu)]), args.frame_stack)
+
+#TODO: use warnings module
+if args.save_path is None:
+  print("Warning: no save_path provided. Model will not be saved.");
+
+if args.load_path is not None:
+  #load model
+  print("Loading '{}'...".format(args.load_path))
+  model = PPO2.load(args.load_path, env, verbose=0)
+else:
+  #create new model
+  #model = PPO2(MlpLstmPolicy, env, verbose=0, nminibatches=1)#have to set minibatches to 1
+  model = PPO2(MlpPolicy, env, verbose=0)
+  #and immediately save
+  save_model()
+
+sys.stdout.flush()
+
+#some large number
+fluct_life = 999999999999
+training_step_counter = 0
+
+#assume we're continuing where we left off
+if args.save_path == args.load_path:
+  #TODO: training_step_counter = something
+  pass
 
 #TODO: train on one episode???
 while True:

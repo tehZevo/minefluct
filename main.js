@@ -12,6 +12,9 @@ var admin = new Administrator("Quinella");
 //  while bot is alive, other bots can spawn with a copy of their minefluct
 //  but when bot dies, their minefluct dies too
 //TODO: system command for generating a fluct
+//TODO: a tree of fluct copy history
+//TODO: system command for changing fluct quota
+//TODO: subclass?????
 
 process.on("uncaughtException", (err) =>
 {
