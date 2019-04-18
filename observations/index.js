@@ -8,6 +8,7 @@ module.exports = {
   NearbyBlock: require("./NearbyBlockObs.js"),
   NearbyEnts: require("./NearbyEntsObs.js"),
   SelfEnt: require("./SelfEntObs.js"),
+  SelfEntSimple: require("./SelfEntSimpleObs.js"),
   HeldItem: require("./HeldItemObs.js"),
   Vitals: require("./VitalsObs.js"),
 }

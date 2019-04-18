@@ -9,10 +9,16 @@ var systemCalls = require("./systemCalls.js");
 
 //needs to be slow enough to not timeout bots on start (from cpu usage?)
 var MONITOR_INTERVAL = 1000 * 4;
-var DEFAULT_FLUCT_QUOTA = 10;
+var DEFAULT_FLUCT_QUOTA = 5;
 //TODO: come up with a better system of tracking/spawning independent flucts..
 //if #of living fluts is < this number, spawn a random fluct instead of copying
-var INDEPENDENT_FLUCT_QUOTA = 5;
+var INDEPENDENT_FLUCT_QUOTA = 3;
+
+//max number of timesteps worth of stats to keep per fluct
+var MAX_STATS_LENGTH = 1000;
+//accumulate rewards and only append to stats after this many steps
+var SUMMARY_STEPS = 100;
+//TODO: pass timestamps in stats?
 
 var ANCESTRY_LENGTH = 10;
 
@@ -54,6 +60,7 @@ module.exports = class Administrator
       this.systemCall(username, m);
     });
 
+    //TODO: move express stuff to its own file (class/router)
     this.app = express();
     this.app.use(express.static('public'));
 
@@ -61,6 +68,13 @@ module.exports = class Administrator
     api.get("/ancestry", (req, res) =>
     {
       res.json(this.flucts.map((e) => e.ancestry));
+    });
+    api.get("/stats", (req, res) =>
+    {
+      var stats = {};
+      this.flucts.forEach((e) => stats[e.name] = e.stats);
+
+      res.json(stats);
     });
 
     this.app.use("/api", api);
@@ -175,12 +189,19 @@ module.exports = class Administrator
       args.push("--load-name", copyFrom.name);
     }
 
-    var fluct = fork("mineFluct.js", args, {silent: true});
+    var options = {
+      silent: true,
+      stdio: [ 'pipe', 'pipe', 'pipe', 'ipc' ],
+    };
+
+    var fluct = fork("mineFluct.js", args, options);
 
     var o = {};
     o.process = fluct;
     o.status = "alive";
     o.name = name;
+    o.stats = {reward:[]};
+    o.statAcc = {reward:[]};
     //copy ancestry list and append self name
     o.ancestry = copyFrom == null ? [] : copyFrom.ancestry.slice();
     o.ancestry.push(name);
@@ -188,6 +209,28 @@ module.exports = class Administrator
     {
       o.ancestry.shift();
     }
+
+    //ipc stats n stuff
+    fluct.on("message", (message) =>
+    {
+      o.statAcc.reward.push(message.reward);
+      if(o.statAcc.reward.length >= SUMMARY_STEPS)
+      {
+        //average rewards
+        var reward = o.statAcc.reward.reduce((acc, e) => acc + e, 0);
+        reward /= o.statAcc.reward.length;
+        //add to stats
+        o.stats.reward.push(reward);
+        //reset accumulator
+        o.statAcc.reward = [];
+        //prune old rewards
+        while(o.stats.reward.length > MAX_STATS_LENGTH)
+        {
+          o.stats.reward.shift();
+        }
+      }
+
+    });
 
     var header = `[${name}]`;
     var footer = new Array(header.length).fill("-").join("");

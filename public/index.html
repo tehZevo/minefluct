@@ -3,36 +3,99 @@
   <head>
     <meta charset="utf-8">
     <title></title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/4.2.1/echarts-en.min.js"></script>
   </head>
   <body>
-    <div id="main" style="width: 1200px;height:800px;"></div>
+    <div class="container">
+      <div clas="row">
+        <div id="main" style="width: 1000px;height:600px;"></div>
+      </div>
+      <div id="stats-container" class="row">
+      </div>
+    </div>
 
     <script>
     var myChart = echarts.init(document.getElementById('main'));
+    var statsContainer = document.getElementById("stats-container");
 
-    // option = {
-    //   series: [{
-    //     type: 'tree',
-    //     //animation: false,
-    //     data: [],
-    //     left: '2%',
-    //             right: '2%',
-    //             top: '8%',
-    //             bottom: '20%',
-    //
-    //             symbol: 'emptyCircle',
-    //
-    //             orient: 'vertical',
-    //
-    //             //expandAndCollapse: true,
-    //   }]
-    // };
-    // myChart.setOption(option);
+    var agentStats = {};
 
     setInterval(() =>
     {
+      $.getJSON("/api/stats", (data) =>
+      {
+        //remove nonexist
+        Object.keys(agentStats).forEach((e) =>
+        {
+          if(!(e in data))
+          {
+            console.log("removing " + e)
+            //delete element
+            statsContainer.removeChild(agentStats[e].elem);
+            //dispose chart
+            agentStats[e].chart.dispose();
+
+            delete agentStats[e];
+          }
+        });
+
+        //create new
+        Object.keys(data).forEach((e) =>
+        {
+          if(e in agentStats)
+          {
+            return;
+          }
+          console.log("creating " + e)
+          var o = {};
+
+          var elem = document.createElement("div");
+          elem.id = `${e}-stats`;
+          elem.className = "col-sm-3";
+          elem.style = "width: 200px;height:200px;";
+          o.elem = elem;
+          statsContainer.appendChild(elem);
+
+          var chart = echarts.init(elem);
+          o.chart = chart;
+
+          agentStats[e] = o;
+        });
+
+        //now update each chart
+        Object.keys(data).forEach((e) =>
+        {
+          var rewards = data[e].reward;
+          var xs = new Array(data.length).fill(undefined).map((e, i) => i);
+          var ys = data;
+          rewards = rewards.map((e, i) => [i, e]);
+
+          var option = {
+            title: {
+              text: e,
+            },
+            xAxis: {
+                //TODO?
+            },
+            yAxis: {
+                type: 'value'
+            },
+            series: [{
+              data: rewards,
+              type: 'line'
+            }]
+          }
+
+          agentStats[e].chart.setOption(option);
+        });
+      });
+
       $.getJSON("/api/ancestry", (data) =>
       {
         var preNodes = new Set();
@@ -85,7 +148,7 @@
         roots = Object.values(roots);
 
         var root = {
-          name: "Light Cube Cluster",
+          name: "Light Block Bundle",
           children: roots,
           itemStyle:
           {
@@ -98,31 +161,23 @@
         myChart.setOption({
           series: [{
             type: 'tree',
+            data: [root],
+            symbol: 'diamond',
+            orient: 'horizontal',
+            initialTreeDepth: -1,
+            symbolSize: 20,
+            itemStyle: {
+              color: "gray",
+            },
+            label: {
+              normal: {
+                position: 'top',
+                verticalAlign: 'middle',
+                fontSize: 14
+              }
+            },
 
-                data: [root],
-
-                symbol: 'diamond',
-
-                orient: 'horizontal',
-
-                //expandAndCollapse: true,
-                initialTreeDepth: -1,
-
-                symbolSize: 20,
-                itemStyle: {
-                  color: "gray",
-                },
-                label: {
-                    normal: {
-                        position: 'top',
-                        //rotate: -90,
-                        verticalAlign: 'middle',
-                        //align: 'right',
-                        fontSize: 14
-                    }
-                },
-
-                animationDurationUpdate: 1000
+            animationDurationUpdate: 1000
           }]
         });
 

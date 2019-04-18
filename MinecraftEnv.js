@@ -29,20 +29,25 @@ var DIRS = [new Vec3(0, 1, 0), new Vec3(1, 0, 0), new Vec3(0, 0, 1),
 
 //TODO: subclass this for versions of mineflucts
 //  (for when observation/action spaces change)
-//  these subclasses should provide available_actions, override getState, and getReward
+//  these subclasses should provide availableActions, override getState, and getReward
 //  getReward overriding will require tracking resource (exp/health/food) deltas
 module.exports = class MinecraftEnv extends EnvironmentServer
 {
-  constructor(name="bot", available_actions=Object.keys(actions))
+  constructor(name="bot", availableActions=Object.keys(actions))
   {
     var obs = [
-      new O.SelfEnt(),
-      new O.Vitals(),
-      new O.Controls(),
-      new O.Cursor(),
-      new O.NearbyBlock(),
-      new O.HeldItem(),
-      new O.NearbyEnts(NUM_NEARBY_ENTS, MAX_RANGE),
+      //new O.SelfEnt(),
+      new O.SelfEntSimple(),
+      //new O.Vitals(),
+      //new O.Controls(),
+      //new O.Cursor(),
+      //new O.NearbyBlock(),
+      //new O.HeldItem(),
+      //new O.NearbyEnts(NUM_NEARBY_ENTS, MAX_RANGE),
+    ];
+
+    availableActions = ["startForward", "startBack", "startLeft", "startRight",
+      "stopForward", "stopBack", "stopLeft", "stopRight"
     ];
 
     //TODO: fix low/high of box... (pass low/high as arrays instead of shape)
@@ -54,7 +59,7 @@ module.exports = class MinecraftEnv extends EnvironmentServer
       dtype: "float32",
     }, {
       type: "discrete",
-      n: available_actions.length,
+      n: availableActions.length,
     });
 
     this.obs = obs;
@@ -63,10 +68,12 @@ module.exports = class MinecraftEnv extends EnvironmentServer
     this.lastHealth = null;
     this.lastArmor = null; //TODO: how to armor?
     this.lastFood = null;
-    this.available_actions = available_actions;
+    this.availableActions = availableActions;
     this.cursor = new Vec3(0, 0, 0);
 
-    this.wait = 1000 / 10; //1 tick? //ms to delay responses
+    //this.wait = 1000 / 10; //1 tick? //ms to delay responses
+    this.wait = 1000 / 100;
+    //this.wait = 1000 / 4;
 
     //TODO: parameterize
     this.bot = mineflayer.createBot({
@@ -126,6 +133,17 @@ module.exports = class MinecraftEnv extends EnvironmentServer
     return reward;
   }
 
+  calcDistanceReward(v, dist)
+  {
+    var p = this.bot.entity.position;
+    if(p == null)
+    {
+      return 0;
+    }
+
+    return (dist - p.distanceTo(v)) / dist;
+  }
+
   async step(action)
   {
     //reset movement and look
@@ -137,11 +155,13 @@ module.exports = class MinecraftEnv extends EnvironmentServer
     this.bot.lookAt(this.cursorPosition());
 
     //perform action
-    actions[this.available_actions[action]](this);
+    var actionName = this.availableActions[action];
+    actions[actionName](this);
 
     //calculate reward
     var reward = 0;
     reward += this.calcResourceReward();
+    reward += this.calcDistanceReward(new Vec3(-232, 64, -37), 10);
 
     this.lastExp = this.bot.experience.points;
     this.lastHealth = this.bot.health;
@@ -151,6 +171,15 @@ module.exports = class MinecraftEnv extends EnvironmentServer
     this.curSteps++;
 
     //console.log(reward)
+    //TODO: this doesnt belong here... but itll do for now
+    //TODO: send action names separately, and just send the number here...
+    if(process.send)
+    {
+      process.send({
+        //action: actionName,
+        reward: reward,
+      });
+    }
 
     var obs = this.getState();
     var done = false; //never never stop no never

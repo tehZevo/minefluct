@@ -15,6 +15,14 @@ var callTree = {"system call": {
     admin.fluctQuota--;
     admin.bot.chat(`Fluct quota decreased to ${admin.fluctQuota}`);
   },
+  //you're welcome Israbelle
+  "sword now": (admin, user) => admin.bot.chat(`/give ${user} diamond_sword`),
+  //you're welcome ROM
+  "sword in five minutes": (admin, user) =>
+  {
+    admin.bot.chat(`*yawn*`);
+    setTimeout(() => admin.bot.chat(`/give ${user} diamond_sword`), 1000 * 60 * 5);
+  },
 }};
 
 var calls = {};
@@ -27,7 +35,7 @@ function buildCallList(tree=callTree, prefix)
 
     if(typeof tree[key] == "function")
     {
-      return calls[subKey] = tree[key];
+      calls[subKey] = tree[key];
     }
 
     buildCallList(tree[key], subKey);
@@ -36,5 +44,4 @@ function buildCallList(tree=callTree, prefix)
 }
 
 buildCallList();
-
 module.exports = calls;

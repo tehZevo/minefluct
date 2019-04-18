@@ -7,10 +7,9 @@ import signal
 import sys
 import os
 
+from stable_baselines.common.policies import MlpPolicy, MlpLstmPolicy, MlpLnLstmPolicy
 from stable_baselines.common.vec_env import DummyVecEnv, VecFrameStack
-from stable_baselines.common.vec_env import DummyVecEnv
-from stable_baselines.deepq.policies import MlpPolicy
-from stable_baselines import DQN
+from stable_baselines import PPO2
 
 import matplotlib.pyplot as plt
 import tensorflow as tf
@@ -32,8 +31,8 @@ parser.add_argument('--url', type=str, default="http://localhost:8080")
 parser.add_argument("--frame-stack", type=int, default=1)
 parser.add_argument('--save-multiple', action='store_true')
 parser.add_argument("--remove-on-end", action="store_true")
-parser.add_argument("--save-steps", type=int, default=100)
-parser.add_argument("--log-steps", type=int, default=100)
+parser.add_argument("--save-steps", type=int, default=1)
+parser.add_argument("--log-steps", type=int, default=1)
 
 args = parser.parse_args()
 
@@ -48,7 +47,7 @@ def signal_handler(sig, frame):
 def cb(locals, globals):
   global training_step_counter
   training_step_counter += 1
-  print(", ".join(list(locals.keys())))
+
   if training_step_counter % args.log_steps == 0:
     print("Training step {} complete.".format(training_step_counter))
 
@@ -102,14 +101,12 @@ if args.save_path is None:
 if args.load_path is not None:
   #load model
   print("Loading '{}'...".format(args.load_path))
-  #model = PPO2.load(args.load_path, env, verbose=0)
-  model = DQN.load(args.load_path, env, verbose=0)
+  model = PPO2.load(args.load_path, env, verbose=0)
 else:
   #create new model
   #model = PPO2(MlpLstmPolicy, env, verbose=0, nminibatches=1)#have to set minibatches to 1
   #model = PPO2(MlpLnLstmPolicy, env, verbose=0, nminibatches=1)
-  #model = PPO2(MlpPolicy, env, verbose=0)
-  model = DQN(MlpPolicy, env, verbose=0)
+  model = PPO2(MlpPolicy, env, verbose=0)
   #and immediately save
   save_model()
 
