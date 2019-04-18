@@ -14,6 +14,8 @@ var DEFAULT_FLUCT_QUOTA = 10;
 //if #of living fluts is < this number, spawn a random fluct instead of copying
 var INDEPENDENT_FLUCT_QUOTA = 5;
 
+var ANCESTRY_LENGTH = 10;
+
 //TODO: get initial list of flucts from models folder
 //TODO: spawn using load-name and name being the same
 
@@ -55,6 +57,21 @@ module.exports = class Administrator
       }
     });
 
+    this.app = express();
+    this.app.use(express.static('public'));
+
+    var api = express.Router();
+    api.get("/ancestry", (req, res) =>
+    {
+      res.json(this.flucts.map((e) => e.ancestry));
+    });
+
+    this.app.use("/api", api);
+
+    //TODO: parameterize
+    var port = 3000;
+    this.app.listen(port, () => console.log(`Example app listening on port ${port}!`))
+
     //this.monitor(); //TODO: wait till login...
     setInterval(() => this.monitor(), MONITOR_INTERVAL);
   }
@@ -68,21 +85,21 @@ module.exports = class Administrator
       //console.log(msg);
       //this.bot.chat(msg);
       //choose a random name from the list of current flucts
-      var loadName = null;
+      var copyFrom = null;
       //if we still need to spawn more independent (random) flucts
       if(this.flucts.length < INDEPENDENT_FLUCT_QUOTA)
       {
         //TODO: code clean
-        loadName = null;
+        copyFrom = null;
       }
       //otherwise if we have already spawned at least one fluct
       else if(this.flucts.length > 0)
       {
         //copy a random fluct
-        loadName = this.flucts[Math.floor(Math.random() * this.flucts.length)].name;
+        copyFrom = this.flucts[Math.floor(Math.random() * this.flucts.length)];
       }
 
-      var fluct = this.spawnFluct(loadName);
+      var fluct = this.spawnFluct(copyFrom);
 
       this.flucts.push(fluct);
 
@@ -90,7 +107,7 @@ module.exports = class Administrator
       {
         msg = `Fluct quota (${this.fluctQuota}) reached.`;
         console.log(msg);
-        this.bot.chat(msg);
+        //this.bot.chat(msg);
       }
     }
 
@@ -125,22 +142,23 @@ module.exports = class Administrator
     }
   }
 
-  spawnFluct(loadName)
+  spawnFluct(copyFrom)
   {
+
     //generate a random name
     var name = "Bot-" + species.human({allowMultipleNames: false})
     //var name = "Bot-" + (this.flucts.length + 1)
 
     var msg = `Creating fluct ${name}`;
-    msg += loadName != null ? ` (copy of ${loadName})` : "";
+    msg += copyFrom != null ? ` (copy of ${copyFrom.name})` : "";
     console.log(msg);
-    this.bot.chat(msg);
+    //this.bot.chat(msg);
 
     //create fluct subprocess
     var args = ["--name", name, "--exit-on-death"];
-    if(loadName != null)
+    if(copyFrom != null)
     {
-      args.push("--load-name", loadName);
+      args.push("--load-name", copyFrom.name);
     }
 
     var fluct = fork("mineFluct.js", args, {silent: true});
@@ -149,6 +167,13 @@ module.exports = class Administrator
     o.process = fluct;
     o.status = "alive";
     o.name = name;
+    //copy ancestry list and append self name
+    o.ancestry = copyFrom == null ? [] : copyFrom.ancestry.slice();
+    o.ancestry.push(name);
+    while(o.ancestry.length > ANCESTRY_LENGTH)
+    {
+      o.shift();
+    }
 
     var header = `[${name}]`;
     var footer = new Array(header.length).fill("-").join("");

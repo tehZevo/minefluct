@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/4.2.1/echarts-en.min.js"></script>
+  </head>
+  <body>
+    <div id="main" style="width: 800px;height:800px;"></div>
+
+    <script>
+    var myChart = echarts.init(document.getElementById('main'));
+
+    // option = {
+    //   series: [{
+    //     type: 'tree',
+    //     //animation: false,
+    //     data: [],
+    //     left: '2%',
+    //             right: '2%',
+    //             top: '8%',
+    //             bottom: '20%',
+    //
+    //             symbol: 'emptyCircle',
+    //
+    //             orient: 'vertical',
+    //
+    //             //expandAndCollapse: true,
+    //   }]
+    // };
+    // myChart.setOption(option);
+
+    setInterval(() =>
+    {
+      $.getJSON("/api/ancestry", (data) =>
+      {
+        var preNodes = new Set();
+        var alive = new Set();
+        data.forEach((r) => r.forEach((e, i) =>
+        {
+          preNodes.add(e);
+
+          if(i == r.length - 1)
+          {
+            alive.add(e);
+          }
+        }));
+
+        var nodes = {};
+        preNodes.forEach((e) =>
+        {
+          nodes[e] = {
+            //id: data.length,
+            name: e,
+            //draggable: true,
+            children: [],
+            itemStyle: {
+              borderColor: alive.has(e) ? "green" : "red",
+            }
+          }
+        });
+
+        //console.log(nodes);
+
+        var roots = {};
+
+        data.forEach((r) =>
+        {
+          roots[nodes[r[0]].name] = nodes[r[0]];
+
+          for(var i = 1; i < r.length; i++)
+          {
+            var a = nodes[r[i - 1]];
+            var b = nodes[r[i]];
+            if(a.children.includes(b))
+            {
+              continue;
+            }
+
+            a.children.push(nodes[r[i]]);
+          };
+        });
+
+        roots = Object.values(roots);
+
+        var root = {
+          name: "Light Cube Cluster",
+          children: roots,
+          itemStyle:
+          {
+            borderColor: "yellow",
+          }
+        }
+
+        //console.log(root)
+
+        myChart.setOption({
+          series: [{
+            type: 'tree',
+
+                data: [root],
+
+                symbol: 'diamond',
+
+                orient: 'horizontal',
+
+                //expandAndCollapse: true,
+                initialTreeDepth: -1,
+
+                symbolSize: 20,
+                itemStyle: {
+                  color: "gray",
+                },
+                label: {
+                    normal: {
+                        position: 'top',
+                        //rotate: -90,
+                        verticalAlign: 'middle',
+                        //align: 'right',
+                        fontSize: 14
+                    }
+                },
+
+                animationDurationUpdate: 1000
+          }]
+        });
+
+      });
+    }, 1000);
+
+    </script>
+  </body>
+</html>

@@ -58,6 +58,7 @@ module.exports = class MinecraftEnv extends EnvironmentServer
     });
 
     this.obs = obs;
+    this.resetControlState = false;
     this.lastExp = null;
     this.lastHealth = null;
     this.lastArmor = null; //TODO: how to armor?
@@ -83,8 +84,8 @@ module.exports = class MinecraftEnv extends EnvironmentServer
     this.bot.on("spawn", () =>
     {
       //TODO: toggle for saying this only in admin managed mode?
-      this.bot.chat("System call: Generate crystalline element, sword shape.");
-      //this.bot.whisper("Quinella", "System call: Generate crystalline element, sword shape.");
+      //this.bot.chat("System call: Generate crystalline element, sword shape.");
+      this.bot.whisper("Quinella", "System call: Generate crystalline element, sword shape.");
     })
 
     //hopefully this will suffice as a spawn replacement for now
@@ -128,7 +129,10 @@ module.exports = class MinecraftEnv extends EnvironmentServer
   async step(action)
   {
     //reset movement and look
-    this.bot.clearControlStates();
+    if(this.resetControlState)
+    {
+      this.bot.clearControlStates();
+    }
 
     this.bot.lookAt(this.cursorPosition());
 
