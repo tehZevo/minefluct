@@ -51,10 +51,7 @@ module.exports = class Administrator
       //this.bot.chat(msg);
 
       var m = msg.trim().toLowerCase();
-      if(m.startsWith("system call"))
-      {
-        this.systemCall(username, m);
-      }
+      this.systemCall(username, m);
     });
 
     this.app = express();
@@ -132,19 +129,36 @@ module.exports = class Administrator
 
   systemCall(user, call)
   {
-    call = call.replace(/[^a-zA-Z\d\s]/g, "");
-    call = call.split(/\s+/g).join(" ");
+    call = call.replace(/[^a-zA-Z\d\s$]/g, "");
+    var callSplit = call.split(/\s+/g);
+    call = callSplit.join(" ");
 
-    if(call in systemCalls)
+    //replace sc/syscall with "system call"
+    if(callSplit[0] == "sc" || callSplit[0] == "syscall")
     {
-      //this.bot.chat("Executing system call...")
-      systemCalls[call](this, user);
+      callSplit = callSplit.slice(1);
+      callSplit = ["system", "call", ...callSplit];
     }
+
+    var scs = Object.entries(systemCalls).map(([k, v]) =>
+    {
+      return {call:k, split:k.split(/\s+/), f:v};
+    });
+    for(var sc of scs)
+    {
+      if(sc.split.every((e, i) => e.startsWith(callSplit[i])))
+      {
+        //this.bot.chat("Executing system call...")
+        systemCalls[sc.call](this, user);
+        return true;
+      }
+    }
+
+    return false;
   }
 
   spawnFluct(copyFrom)
   {
-
     //generate a random name
     var name = "Bot-" + species.human({allowMultipleNames: false})
     //var name = "Bot-" + (this.flucts.length + 1)
@@ -172,7 +186,7 @@ module.exports = class Administrator
     o.ancestry.push(name);
     while(o.ancestry.length > ANCESTRY_LENGTH)
     {
-      o.shift();
+      o.ancestry.shift();
     }
 
     var header = `[${name}]`;

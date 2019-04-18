@@ -1,10 +1,20 @@
 
-var callTree = { "system call": {
+var callTree = {"system call": {
   "generate": {
     "crystalline element": {
       "sword shape": (admin, user) => admin.bot.chat(`/give ${user} diamond_sword`),
     }
-  }
+  },
+  "increase fluct quota": (admin, user) =>
+  {
+    admin.fluctQuota++;
+    admin.bot.chat(`Fluct quota increased to ${admin.fluctQuota}`);
+  },
+  "decrease fluct quota": (admin, user) =>
+  {
+    admin.fluctQuota--;
+    admin.bot.chat(`Fluct quota decreased to ${admin.fluctQuota}`);
+  },
 }};
 
 var calls = {};
